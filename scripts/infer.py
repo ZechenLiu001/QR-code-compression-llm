@@ -1,13 +1,16 @@
 """Unified inference interface"""
 
+import os
 import sys
-from pathlib import Path
 
-# Add project root to path
-project_root = Path(__file__).parent.parent.resolve()
-sys.path.insert(0, str(project_root))
+# Add project root to path (must be before any src imports)
+_this_file = os.path.abspath(__file__)
+_project_root = os.path.dirname(os.path.dirname(_this_file))
+if _project_root not in sys.path:
+    sys.path.insert(0, _project_root)
 
 import time
+from pathlib import Path
 import torch
 from typing import Union, List, Dict, Any
 from PIL import Image
