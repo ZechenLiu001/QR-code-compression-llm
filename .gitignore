@@ -3,19 +3,6 @@ __pycache__/
 *.py[cod]
 *$py.class
 *.so
-.Python
-build/
-develop-eggs/
-dist/
-downloads/
-eggs/
-.eggs/
-lib/
-lib64/
-parts/
-sdist/
-var/
-wheels/
 *.egg-info/
 .installed.cfg
 *.egg
@@ -54,9 +41,6 @@ Thumbs.db
 # Jupyter
 .ipynb_checkpoints/
 
-# Data
-*.jsonl
-data/
 
 # Config (keep templates, ignore local)
 configs/local_*.yaml
