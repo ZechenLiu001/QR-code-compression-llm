@@ -7,8 +7,9 @@ from pathlib import Path
 from tqdm import tqdm
 import sys
 
-# Add src to path
-sys.path.insert(0, str(Path(__file__).parent.parent))
+# Add project root to path
+project_root = Path(__file__).parent.parent.resolve()
+sys.path.insert(0, str(project_root))
 
 from src.model.loader import load_model
 from src.data.json_task import generate_json_sample
