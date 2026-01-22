@@ -1,0 +1,42 @@
+seed: 42
+
+model:
+  model_id: "Qwen/Qwen2-VL-2B-Instruct"
+  torch_dtype: "bfloat16"
+
+inference:
+  temperature: 0.0
+  do_sample: false
+  
+  max_new_tokens:
+    json_restore: 512
+    needle: 64
+  
+  visual_token:
+    patch_size: 14
+    prefer_processor: true
+
+data:
+  tasks: ["json_restore"]
+  length_buckets: [512, 1024]
+  samples_per_bucket: 10
+
+codecs:
+  - type: "text"
+  - type: "render"
+  - type: "codebook"
+    color_mode: "4color"
+    cell_size: 6
+    max_grid: 128
+  - type: "codebook_external"
+    format: "qrcode"
+    error_correction: "L"
+    max_bytes_per_symbol: 800
+
+augment:
+  enabled: false
+
+output:
+  save_images: true
+  save_prompts: true
+  results_file: "outputs/results/smoke_results.jsonl"
