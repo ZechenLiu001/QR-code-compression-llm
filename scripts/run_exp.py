@@ -1,4 +1,14 @@
-"""Run full experiment"""
+"""Run full experiment
+
+支持加载 LoRA adapter 进行推理
+
+Usage:
+    # 使用 base model
+    python scripts/run_exp.py --config configs/exp_sweep.yaml
+    
+    # 使用 LoRA adapter
+    python scripts/run_exp.py --config configs/exp_sweep.yaml --lora_path outputs/checkpoints/final
+"""
 
 import argparse
 import json
@@ -14,7 +24,7 @@ _project_root = os.path.dirname(os.path.dirname(_this_file))
 if _project_root not in sys.path:
     sys.path.insert(0, _project_root)
 
-from src.model.loader import load_model
+from src.model.loader import load_model, load_model_with_lora
 from src.data.json_task import generate_json_sample
 from src.data.needle_task import generate_needle_sample
 from src.data.length_bucket import LengthBucket
@@ -53,8 +63,13 @@ def create_codec(codec_config: dict):
         raise ValueError(f"Unknown codec type: {codec_type}")
 
 
-def run_experiment(config_path: str):
-    """Run full experiment"""
+def run_experiment(config_path: str, lora_path: str = None):
+    """Run full experiment
+    
+    Args:
+        config_path: Path to experiment config
+        lora_path: Optional path to LoRA adapter checkpoint
+    """
     # Load config
     config = load_config(config_path)
     config_hash = compute_config_hash(config)
@@ -64,9 +79,33 @@ def run_experiment(config_path: str):
     seed = config.get("seed", 42)
     set_seed(seed)
     
+    # Check for LoRA path in config if not provided via CLI
+    if lora_path is None:
+        lora_path = config.get("model", {}).get("lora_path", None)
+    
     # Load model
     logger.info("Loading model...")
-    model, processor = load_model(**config["model"])
+    model_config = config.get("model", {})
+    
+    if lora_path:
+        logger.info(f"Loading model with LoRA adapter from: {lora_path}")
+        # Check if we should use 4-bit quantization
+        use_4bit = config.get("quantization", {}).get("use_4bit", False)
+        quant_config = config.get("quantization", {}) if use_4bit else None
+        
+        model, processor = load_model_with_lora(
+            model_id=model_config.get("model_id", "Qwen/Qwen2-VL-2B-Instruct"),
+            lora_path=lora_path,
+            device_map=model_config.get("device_map", "auto"),
+            torch_dtype=model_config.get("torch_dtype", "auto"),
+            use_flash_attn=model_config.get("use_flash_attn", False),
+            use_4bit=use_4bit,
+            quantization_config=quant_config,
+        )
+    else:
+        logger.info("Loading base model (no LoRA)")
+        model, processor = load_model(**model_config)
+    
     logger.info("Model loaded")
     
     # Create codecs
@@ -236,10 +275,16 @@ def run_experiment(config_path: str):
 def main():
     parser = argparse.ArgumentParser(description="Run image context compression experiment")
     parser.add_argument("--config", type=str, required=True, help="Config file path")
+    parser.add_argument(
+        "--lora_path", 
+        type=str, 
+        default=None, 
+        help="Path to LoRA adapter checkpoint (overrides config)"
+    )
     
     args = parser.parse_args()
     
-    run_experiment(args.config)
+    run_experiment(args.config, lora_path=args.lora_path)
 
 
 if __name__ == "__main__":

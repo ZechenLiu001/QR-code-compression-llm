@@ -1,0 +1,120 @@
+# LoRA Training Configuration for Codebook Decoding
+# 用于训练模型学习解码 codebook/render/QR 图像
+
+# 模型配置
+model:
+  model_id: "Qwen/Qwen2-VL-2B-Instruct"
+  use_flash_attn: false
+  device_map: "auto"
+  torch_dtype: "auto"
+
+# LoRA 配置
+lora:
+  r: 16                      # LoRA rank (越大容量越大，但显存占用也越大)
+  alpha: 32                  # LoRA alpha (通常设为 2*r)
+  dropout: 0.05              # LoRA dropout
+  target_modules:            # 目标模块 (Qwen2-VL 的注意力和 MLP 层)
+    - "q_proj"
+    - "k_proj"
+    - "v_proj"
+    - "o_proj"
+    - "gate_proj"
+    - "up_proj"
+    - "down_proj"
+  bias: "none"
+  task_type: "CAUSAL_LM"
+
+# 量化配置 (QLoRA)
+quantization:
+  use_4bit: true
+  bnb_4bit_quant_type: "nf4"
+  bnb_4bit_use_double_quant: true
+  bnb_4bit_compute_dtype: "bfloat16"
+
+# 训练配置
+training:
+  output_dir: "outputs/checkpoints"
+  num_epochs: 3
+  batch_size: 1                        # 每个 GPU 的 batch size
+  gradient_accumulation_steps: 8       # 梯度累积步数 (有效 batch = 1 * 8 = 8)
+  learning_rate: 2.0e-4
+  weight_decay: 0.01
+  warmup_ratio: 0.03
+  max_grad_norm: 0.3
+  lr_scheduler_type: "cosine"
+  
+  # 日志和保存
+  logging_steps: 10
+  save_steps: 100
+  save_total_limit: 3
+  eval_steps: 100
+  eval_strategy: "steps"
+  
+  # 精度设置
+  fp16: false
+  bf16: true
+  
+  # 优化器
+  optim: "paged_adamw_8bit"
+  
+  # 其他
+  gradient_checkpointing: true
+  report_to: "none"                    # 可改为 "wandb" 或 "tensorboard"
+
+# 数据配置
+data:
+  train_path: "outputs/train_data/train.jsonl"
+  val_path: "outputs/train_data/val.jsonl"
+  train_images_dir: "outputs/train_data/images"
+  max_length: 2048                     # 最大序列长度
+  
+  # 数据生成参数
+  generation:
+    num_samples_per_codec: 500         # 每种 codec 生成的样本数
+    codecs:                            # 要训练的 codec 类型
+      - "render"
+      - "codebook"
+      - "codebook_external"
+    tasks:                             # 任务类型
+      - "json_restore"
+      - "needle"
+    task_weights:                      # 任务权重 (json_restore 更多)
+      json_restore: 0.7
+      needle: 0.3
+    length_buckets:                    # token 长度分布
+      - 256
+      - 512
+      - 1024
+    train_val_split: 0.9               # 训练/验证集比例
+
+# Codec 配置 (与实验配置一致)
+codec:
+  render:
+    font_size: 12
+    line_spacing: 4
+    margin: 10
+    bg_color: [255, 255, 255]
+    text_color: [0, 0, 0]
+  codebook:
+    mode: "bw"                         # "bw" 或 "4color"
+    cell_size: 4
+    use_compression: true
+  codebook_external:
+    type: "qrcode"
+    error_correction: "M"
+    box_size: 10
+    border: 4
+
+# 数据增强 (训练时轻微增强)
+augment:
+  enabled: true
+  scale_range: [0.95, 1.05]
+  rotation_range: [-3, 3]
+  jpeg_quality_range: [90, 100]
+  blur_prob: 0.1
+  blur_radius_range: [0.5, 1.0]
+  noise_prob: 0.1
+  noise_std_range: [1, 5]
+
+# 随机种子
+seed: 42
