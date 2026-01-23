@@ -41,10 +41,6 @@ Thumbs.db
 # Jupyter
 .ipynb_checkpoints/
 
-# Testing
-.pytest_cache/
-.coverage
-htmlcov/
 
 # Config (keep templates, ignore local)
 configs/local_*.yaml

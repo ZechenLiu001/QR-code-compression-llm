@@ -72,11 +72,9 @@ class TrainDataGenerator:
         # Render codec
         render_cfg = codec_config.get("render", {})
         self.codecs["render"] = RenderCodec(
-            font_size=render_cfg.get("font_size", 12),
-            line_spacing=render_cfg.get("line_spacing", 4),
-            margin=render_cfg.get("margin", 10),
-            bg_color=tuple(render_cfg.get("bg_color", [255, 255, 255])),
-            text_color=tuple(render_cfg.get("text_color", [0, 0, 0])),
+            font_size=render_cfg.get("font_size", 14),
+            line_width=render_cfg.get("line_width", 80),
+            dpi=render_cfg.get("dpi", 150),
         )
         
         # Codebook codec

@@ -90,11 +90,9 @@ data:
 # Codec 配置 (与实验配置一致)
 codec:
   render:
-    font_size: 12
-    line_spacing: 4
-    margin: 10
-    bg_color: [255, 255, 255]
-    text_color: [0, 0, 0]
+    font_size: 14
+    line_width: 80
+    dpi: 150
   codebook:
     mode: "bw"                         # "bw" 或 "4color"
     cell_size: 4
