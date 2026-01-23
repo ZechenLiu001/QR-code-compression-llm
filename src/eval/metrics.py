@@ -1,25 +1,58 @@
 """Evaluation metrics"""
 
 import json
+import re
 from typing import Dict, Any
+
+
+def _extract_json(text: str) -> str:
+    """Extract JSON from text, handling markdown code blocks
+    
+    Args:
+        text: Text that may contain JSON wrapped in markdown
+        
+    Returns:
+        Extracted JSON string
+    """
+    text = text.strip()
+    
+    # Try to extract from markdown code block
+    # Pattern: ```json\n{...}\n``` or ```\n{...}\n```
+    patterns = [
+        r'```json\s*\n?(.*?)\n?```',
+        r'```\s*\n?(.*?)\n?```',
+    ]
+    
+    for pattern in patterns:
+        match = re.search(pattern, text, re.DOTALL)
+        if match:
+            return match.group(1).strip()
+    
+    # If no code block, return as-is
+    return text
 
 
 def json_exact_match(pred: str, gold: str) -> float:
     """JSON exact match (canonicalized comparison)
     
+    - Extract JSON from markdown code blocks if present
     - If both parse successfully: compare canonicalized JSON
     - If parse fails: fallback to strict string comparison
     
     Args:
-        pred: Predicted JSON string
+        pred: Predicted JSON string (may be wrapped in markdown)
         gold: Ground truth JSON string
         
     Returns:
         1.0 if exact match, 0.0 otherwise
     """
+    # Extract JSON from markdown if needed
+    pred_clean = _extract_json(pred)
+    gold_clean = _extract_json(gold)
+    
     try:
-        pred_obj = json.loads(pred)
-        gold_obj = json.loads(gold)
+        pred_obj = json.loads(pred_clean)
+        gold_obj = json.loads(gold_clean)
         
         # Canonicalize: sort keys, compact format
         pred_canonical = json.dumps(pred_obj, sort_keys=True, separators=(',', ':'))
@@ -28,7 +61,7 @@ def json_exact_match(pred: str, gold: str) -> float:
         return 1.0 if pred_canonical == gold_canonical else 0.0
     except (json.JSONDecodeError, TypeError):
         # Fallback to string comparison
-        return 1.0 if pred.strip() == gold.strip() else 0.0
+        return 1.0 if pred_clean == gold_clean else 0.0
 
 
 def json_structural_f1(pred: str, gold: str) -> Dict[str, float]:
@@ -42,15 +75,19 @@ def json_structural_f1(pred: str, gold: str) -> Dict[str, float]:
     - overall_f1: combined metric
     
     Args:
-        pred: Predicted JSON string
+        pred: Predicted JSON string (may be wrapped in markdown)
         gold: Ground truth JSON string
         
     Returns:
         Dictionary with metrics
     """
+    # Extract JSON from markdown if needed
+    pred_clean = _extract_json(pred)
+    gold_clean = _extract_json(gold)
+    
     try:
-        pred_obj = json.loads(pred)
-        gold_obj = json.loads(gold)
+        pred_obj = json.loads(pred_clean)
+        gold_obj = json.loads(gold_clean)
     except (json.JSONDecodeError, TypeError):
         return {
             "key_precision": 0.0,
